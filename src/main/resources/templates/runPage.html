@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <!--网页图标-->
+    <link rel="icon" href="../static/img/logo.png">
+    <link rel="icon" href="img/logo.png">
+
+    <title>运行容器</title>
+
+    <link rel="stylesheet" type="text/css" href="../static/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../static/css/dashboard.css">
+    <link rel="stylesheet" type="text/css" href="../static/css/toastr.min.css">
+    <link rel="stylesheet" type="text/css" href="css/toastr.min.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/dashboard.css">
+    <style>
+        .hostPanel{
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<nav th:replace="mainPage :: topnavbar"></nav>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-3 col-md-2 sidebar">
+            <ul class="nav nav-sidebar">
+                <li><a href="#">概况</a></li>
+                <li class="active"><a href="/runPage">运行</a></li>
+            </ul>
+        </div>
+
+        <!-- TODO 将第一个li设为active
+        TODO a标签的文本可以是容器名 -->
+        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+            <ul id="myTab" class="nav nav-tabs">
+                <li class="active">
+                    <a href="#container1" data-toggle="tab">
+                        host1
+                    </a>
+                </li>
+                <li><a href="#container2" data-toggle="tab">host2</a></li>
+                <button id="showModalBtn" class="btn btn-primary pull-right" type="button" onclick="showModal()">新建容器</button>
+            </ul>
+            <div id="myTabContent" class="tab-content">
+                <div class="tab-pane fade in active embed-responsive embed-responsive-16by9" id="container1">
+                    <!-- TODO src为noVNC链接-->
+                    <iframe src="" class="hostPanel embed-responsive-item">第一个容器</iframe>
+                </div>
+                <div class="tab-pane fade embed-responsive embed-responsive-16by9" id="container2">
+                    <iframe src="" class="hostPanel embed-responsive-item">第二个容器</iframe>
+                </div>
+            </div>
+        </div>
+
+        <div id="createModal" class="modal fade" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="containerNameInput">请输入容器名</label>
+                            <input class="form-control" id="containerNameInput" placeholder="容器名" required>
+                        </div>
+                        <button class="btn btn-default btn-sm" style="width: 100%" onclick="addContainer()">创建</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script src="../static/js/jquery.min.js"></script>
+<script src="../static/js/bootstrap.js"></script>
+<script src="../static/js/toastr.min.js"></script>
+<script src="js/toastr.min.js"></script>
+<script src="js/jquery.min.js"></script>
+<script src="js/bootstrap.js"></script>
+<script>
+    $(function () {
+        containerNumCheck();
+    });
+    function showModal() {
+        $('#createModal').modal('toggle');
+    }
+    function containerNumCheck() {
+        //超出3个之后禁用按钮
+        var hostTabs = $('#myTab').children('li');
+            if (hostTabs.length === 3){
+            $('#showModalBtn').addClass("disabled").attr("onclick", "");
+        }
+    }
+    function addContainer() {
+        //TODO 如果是新建的容器，如果是运行的原来的容器
+        var containerName = $('#containerNameInput').val();
+        $('#createModal').modal('hide');
+
+        var showModalBtn = $('#showModalBtn');
+        showModalBtn.addClass('disabled').attr("onclick", "").text('创建中...');
+
+        var hostTabs = $('#myTab');
+        var hostNum = hostTabs.children('li').length;
+        var hostPanels = $('#myTabContent');
+
+        var result;
+        $.post("/createContainer", {
+            "containerName" : containerName
+        }, function (data) {
+            console.log(data);
+            result = data;
+        });
+        if (!result) {
+            toastr.error('创建失败');
+            return;
+        }
+
+        //TODO 容器名和链接使用thymeleaf获取
+        var hostTabTemplate = '<li class="active"><a href="#container' + (hostNum + 1) + '" data-toggle="tab">' + containerName + '</a></li>';
+        var hostPanelTemplate = '<div class="tab-pane fade in active embed-responsive embed-responsive-16by9" id="container' + (hostNum + 1) + '">' +
+                                    '<iframe src="' + 'noVNC链接' + '" class="embed-responsive-item"></iframe>' +
+                                '</div>';
+
+        showModalBtn.removeClass('disabled').attr("onclick", "showModal()").text('新建容器');
+
+        hostTabs.children('li').removeClass('active');
+        hostPanels.children().removeClass('in active');
+
+        hostTabs.append(hostTabTemplate);
+        hostPanels.append(hostPanelTemplate);
+        containerNumCheck();
+    }
+</script>
+</html>
